@@ -24,9 +24,21 @@ my yes.
 
 
 def main() -> None:
+    # Guard the competition's gate: entry.txt must hold 1-280 Unicode
+    # code points of non-whitespace text. Fail loudly instead of
+    # silently submitting an invalid entry if the poem ever changes.
+    code_points = len(POEM)
+    if not 1 <= code_points <= 280:
+        raise SystemExit(f"poem is {code_points} code points, must be 1-280")
+    if not POEM.strip():
+        raise SystemExit("poem must not be only whitespace")
     out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "entry.txt").write_text(POEM, encoding="utf-8")
+    # Write atomically so a run never leaves a half-written entry.txt.
+    target = out_dir / "entry.txt"
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(POEM, encoding="utf-8")
+    os.replace(tmp, target)
 
 
 if __name__ == "__main__":
